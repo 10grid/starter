@@ -1,19 +1,16 @@
 import express from "express";
 require("dotenv").config();
-import mongoose from "mongoose";
+import router from "./routes/UserRoutes";
 
 const app = express();
 app.use(express.json());
 
-const MONGO_URL = process.env.MONGO_CONNECTION;
-mongoose
-  .connect(MONGO_URL, { dbName: "starter" })
-  .then(() => {
-    console.log("Connected to MongoDB");
-  })
-  .catch((err) => {
-    console.log(err);
-  });
+// Connect to MongoDB function from db/dbConnection.ts
+const mongooseConnectDB = require("./db/dbConnection");
+mongooseConnectDB();
+
+// Routes
+app.use("/", router);
 
 app.listen(4000, () => {
   console.log("Server is running on port 4000");
