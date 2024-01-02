@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "NodeNext",
+    // "moduleResolution": "Node",
+    "baseUrl": "src",
+    "outDir": "dist",
+    "sourceMap": true,
+    "noImplicitAny": true
+  },
+  "ts-node": {
+    "files": true
+  },
+  "include": ["src/**/*.ts", "environment.d.ts", "app.ts"]
+}
