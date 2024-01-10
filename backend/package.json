@@ -21,7 +21,8 @@
     "nodemon": "^3.0.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "validator": "^13.11.0"
   },
   "devDependencies": {
     "tslint-config-prettier": "^1.18.0"
