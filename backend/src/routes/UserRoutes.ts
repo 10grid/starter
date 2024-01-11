@@ -8,12 +8,18 @@ const {
   deleteUser,
 } = require("../controllers/userController");
 
+const { signup } = require("../controllers/authController");
+
 const router = express.Router();
 
-router.get("/users", getUsers);
-router.get("/users/:id", getUser);
-router.post("/users", createUser);
-router.put("/users/:id", updateUser);
-router.delete("/users/:id", deleteUser);
+//auth
+router.post("/users/signup", signup);
+
+//users
+router.get("/users", getUsers).post("/users", createUser);
+router
+  .get("/users/:id", getUser)
+  .put("/users/:id", updateUser)
+  .delete("/users/:id", deleteUser);
 
 export default router;

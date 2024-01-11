@@ -15,7 +15,7 @@ mongooseConnectDB();
 app.use("/api/v1/", router);
 
 app.all("*", (req: Request, res: Response, next: NextFunction) => {
-  next(`Can't find ${req.originalUrl} on this server!`);
+  next(res.json(`Can't find ${req.originalUrl} on this server!`));
 });
 
 app.listen(4000, () => {
