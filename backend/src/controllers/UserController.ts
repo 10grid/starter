@@ -1,24 +1,30 @@
 import express, { Request, Response, NextFunction } from "express";
 import { UserModel } from "../models/User";
-const catchAsync = require("../utils/catchAsync");
 
-exports.getUsers = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
+exports.getUsers = async (req: Request, res: Response, next: NextFunction) => {
+  try {
     const users = await UserModel.find();
     return res.status(200).json({ data: users });
+  } catch (error) {
+    next(error);
   }
-);
+};
 
-exports.getUser = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-    const user = await UserModel.findById(id);
+exports.getUser = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = await UserModel.findById(req.params.id);
     return res.status(200).json({ data: user });
+  } catch (error) {
+    next(error);
   }
-);
+};
 
-exports.createUser = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
+exports.createUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
     const { name, email, password, passwordConfirm, dateofbirth } = req.body;
     const user = new UserModel({
       name,
@@ -31,11 +37,17 @@ exports.createUser = catchAsync(
     return res
       .status(201)
       .json({ message: `User ${name} created`, data: user });
+  } catch (error) {
+    next(error);
   }
-);
+};
 
-exports.updateUser = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
+exports.updateUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
     const { id } = req.params;
     const { name, email, dateofbirth } = req.body;
     const user = await UserModel.findById(id);
@@ -48,18 +60,22 @@ exports.updateUser = catchAsync(
         .status(200)
         .json({ message: `User ${name} updated`, data: user });
     }
-    return res.status(400).json({ message: "User not found" });
+  } catch (error) {
+    next(error);
   }
-);
+};
 
-exports.deleteUser = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
+exports.deleteUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
     const { id } = req.params;
     const user = await UserModel.findById(id);
-    if (user) {
-      await user.deleteOne();
-      return res.status(200).json({ message: `User ${user.name} deleted` });
-    }
-    return res.status(400).json({ message: "User not found" });
+    await user.deleteOne();
+    return res.status(200).json({ message: `User ${user.name} deleted` });
+  } catch (error) {
+    next(error);
   }
-);
+};
