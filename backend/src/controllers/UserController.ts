@@ -1,10 +1,13 @@
 import express, { Request, Response, NextFunction } from "express";
-import { UserModel } from "../models/User";
+import User from "../models/User";
 
 exports.getUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const users = await UserModel.find();
-    return res.status(200).json({ data: users });
+    const users = await User.find();
+    if (users.length == 0) {
+      return res.status(404).json({ message: "No users found" });
+    }
+    return res.status(200).json({ status: "success", data: { users } });
   } catch (error) {
     next(error);
   }
@@ -12,7 +15,7 @@ exports.getUsers = async (req: Request, res: Response, next: NextFunction) => {
 
 exports.getUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const user = await UserModel.findById(req.params.id);
+    const user = await User.findById(req.params.id);
     return res.status(200).json({ data: user });
   } catch (error) {
     next(error);
@@ -26,7 +29,7 @@ exports.createUser = async (
 ) => {
   try {
     const { name, email, password, passwordConfirm, dateofbirth } = req.body;
-    const user = new UserModel({
+    const user = new User({
       name,
       email,
       password,
@@ -50,7 +53,7 @@ exports.updateUser = async (
   try {
     const { id } = req.params;
     const { name, email, dateofbirth } = req.body;
-    const user = await UserModel.findById(id);
+    const user = await User.findById(id);
     if (user) {
       user.name = name;
       user.email = email;
@@ -72,7 +75,7 @@ exports.deleteUser = async (
 ) => {
   try {
     const { id } = req.params;
-    const user = await UserModel.findById(id);
+    const user = await User.findById(id);
     await user.deleteOne();
     return res.status(200).json({ message: `User ${user.name} deleted` });
   } catch (error) {
