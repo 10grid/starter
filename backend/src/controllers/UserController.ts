@@ -3,6 +3,10 @@ import User from "../models/User";
 import { promisify } from "util";
 const jwt = require("jsonwebtoken");
 
+interface CustomRequest extends Request {
+  user: any;
+}
+
 exports.getUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const users = await User.find();
@@ -98,7 +102,10 @@ exports.senstiveInfo = async (
   res: Response,
   next: NextFunction
 ) => {
-  res.status(200).json({ message: "This is senstive information" });
+  res.status(200).json({
+    message:
+      "This is senstive information and you are authorized with a verified token",
+  });
 };
 
 exports.protect = async (req: Request, res: Response, next: NextFunction) => {
@@ -143,11 +150,30 @@ exports.protect = async (req: Request, res: Response, next: NextFunction) => {
         })
       );
     }
+
+    //grant access to protected route
+    const customReq = req as CustomRequest;
+    customReq.user = freshUser;
   } catch (error) {
     return next(res.status(401).json({ error }));
   }
 
-  //grant access to protected route
-  // req.user = freshUser;
   next();
+};
+
+exports.restrictTo = (...roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const customReq = req as CustomRequest;
+    //yet roles array contain ['admin']. If some user access this route whose role = 'user' then
+    //the below condition returns true and user does not have access
+    //as only roles which are received in array have access
+    if (!roles.includes(customReq.user.role)) {
+      return next(
+        res.status(403).json({
+          message: "You do not have permission to perform this action",
+        })
+      );
+    }
+    next();
+  };
 };

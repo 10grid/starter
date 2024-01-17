@@ -7,6 +7,7 @@ import { Model, Schema, model } from "mongoose";
 interface IUser {
   name: string;
   email: string;
+  role: string;
   password: string;
   passwordConfirm: string;
   dateofbirth: string;
@@ -40,6 +41,11 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>({
     unique: true,
     lowercase: true,
     validate: [validator.isEmail, "Please enter a valid email address"],
+  },
+  role: {
+    type: String,
+    enum: ["user", "admin"],
+    default: "user",
   },
   password: {
     type: String,
