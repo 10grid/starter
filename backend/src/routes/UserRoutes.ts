@@ -31,7 +31,7 @@ router.delete("/users/:id", protect, restrictTo("admin"), deleteUser);
 router.get("/senstiveInfo", protect, senstiveInfo);
 
 router.post("/users/forgot-password", forgotPassword);
-router.post("/users/reset-password", resetPassword);
+router.patch("/users/reset-password:token", resetPassword);
 
 //users
 router.get("/users", getUsers);
