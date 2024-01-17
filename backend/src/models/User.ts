@@ -1,4 +1,5 @@
 const validator = require("validator");
+import { UserRoles } from "../enum/UserRoles";
 import express, { Request, Response, NextFunction } from "express";
 const bcrypt = require("bcryptjs");
 
@@ -44,8 +45,8 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>({
   },
   role: {
     type: String,
-    enum: ["user", "admin"],
-    default: "user",
+    enum: UserRoles,
+    default: UserRoles.User,
   },
   password: {
     type: String,
