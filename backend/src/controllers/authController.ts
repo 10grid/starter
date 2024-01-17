@@ -4,6 +4,7 @@ import { promisify } from "util";
 import User from "../models/User"; // Fix the import statement
 import { Types } from "mongoose";
 const { sendEmail } = require("../utils/email");
+const crypto = require("crypto");
 
 interface CustomRequest extends Request {
   user: any;
@@ -191,4 +192,41 @@ exports.forgotPassword = async (
   }
 };
 
-exports.resetPassword = (req: Request, res: Response, next: NextFunction) => {};
+exports.resetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  //1. get user based on token
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(req.params.token)
+    .digest("hex");
+
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    //check if passwordResetExpires is greater than right now, if true it means its in future and has not yet expired
+    passwordResetExpires: { $gt: Date.now() },
+  });
+
+  //2. if token is not expired, and there is user, then set the new password
+  if (!user) {
+    return next(
+      res.status(400).json({ message: "Token is invalid or expired" })
+    );
+  }
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  await user.save();
+
+  //3. update changedPasswordAt property for user
+
+  //4. login the user, send JWT
+  const token = signToken(user._id);
+  res.status(200).json({
+    status: "success",
+    token,
+  });
+};
