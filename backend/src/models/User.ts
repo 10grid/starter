@@ -2,6 +2,7 @@ const validator = require("validator");
 import { UserRoles } from "../enum/UserRoles";
 import express, { Request, Response, NextFunction } from "express";
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 
 import { Model, Schema, model } from "mongoose";
 
@@ -13,6 +14,8 @@ interface IUser {
   passwordConfirm: string;
   dateofbirth: string;
   passwordChangedAt: Date;
+  passwordResetToken: String;
+  passwordResetExpires: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +28,7 @@ interface IUserMethods {
     userPassword: string
   ): Promise<boolean>;
   changedPasswordAfter(JWTTimestamp: string): Promise<boolean>;
+  createPasswordResetToken(): string;
 }
 
 // Create a new Model type that knows about IUserMethods...
@@ -70,6 +74,8 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>({
     type: String,
   },
   passwordChangedAt: { type: Date, default: () => new Date() },
+  passwordResetToken: String,
+  passwordResetExpires: Date,
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
@@ -110,6 +116,23 @@ userSchema.method("changedPasswordAfter", function (JWTTimestamp) {
 
   // false means not changed
   return false;
+});
+
+userSchema.method("createPasswordResetToken", function () {
+  //this is a random string
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  //this is an encrypted reset token to be saved in the database
+  this.passwordResetToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  console.log({ resetToken }, this.passwordResetToken);
+
+  this.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+  return resetToken;
 });
 
 const User = model<IUser, UserModel>("User", userSchema);

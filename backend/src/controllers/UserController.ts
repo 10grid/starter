@@ -1,11 +1,6 @@
 import express, { Request, Response, NextFunction } from "express";
 import User from "../models/User";
-import { promisify } from "util";
 const jwt = require("jsonwebtoken");
-
-interface CustomRequest extends Request {
-  user: any;
-}
 
 exports.getUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -28,36 +23,36 @@ exports.getUser = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-exports.createUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const {
-      name,
-      email,
-      password,
-      passwordConfirm,
-      dateofbirth,
-      passwordChangedAt,
-    } = req.body;
-    const user = new User({
-      name,
-      email,
-      password,
-      passwordConfirm,
-      dateofbirth,
-      passwordChangedAt,
-    });
-    await user.save();
-    return res
-      .status(201)
-      .json({ message: `User ${name} created`, data: user });
-  } catch (error) {
-    next(error);
-  }
-};
+// exports.createUser = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   try {
+//     const {
+//       name,
+//       email,
+//       password,
+//       passwordConfirm,
+//       dateofbirth,
+//       passwordChangedAt,
+//     } = req.body;
+//     const user = new User({
+//       name,
+//       email,
+//       password,
+//       passwordConfirm,
+//       dateofbirth,
+//       passwordChangedAt,
+//     });
+//     await user.save();
+//     return res
+//       .status(201)
+//       .json({ message: `User ${name} created`, data: user });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
 
 exports.updateUser = async (
   req: Request,
@@ -95,85 +90,4 @@ exports.deleteUser = async (
   } catch (error) {
     next(error);
   }
-};
-
-exports.senstiveInfo = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  res.status(200).json({
-    message:
-      "This is senstive information and you are authorized with a verified token",
-  });
-};
-
-exports.protect = async (req: Request, res: Response, next: NextFunction) => {
-  let token;
-  //1) Getting token and check if it's there
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  }
-
-  if (!token) {
-    return next(
-      res
-        .status(401)
-        .json({ message: "You are not logged in, Please login to get access." })
-    );
-  }
-
-  try {
-    //2) Verification token
-    const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
-    if (!decoded) {
-      return next(res.status(401).json({ message: "Invalid signature" }));
-    }
-
-    //3) Check if user still exists
-    const freshUser = await User.findById(decoded.id);
-    if (!freshUser) {
-      return next(
-        res
-          .status(401)
-          .json({ message: "The user belonging to this token does not exist" })
-      );
-    }
-    //4) Check if user changed password after the token was issued
-    if (freshUser.changedPasswordAfter(decoded.iat)) {
-      return next(
-        res.status(401).json({
-          message: "User changed password recently, Please log in again.",
-        })
-      );
-    }
-
-    //grant access to protected route
-    const customReq = req as CustomRequest;
-    customReq.user = freshUser;
-  } catch (error) {
-    return next(res.status(401).json({ error }));
-  }
-
-  next();
-};
-
-exports.restrictTo = (...roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const customReq = req as CustomRequest;
-    //yet roles array contain ['admin']. If some user access this route whose role = 'user' then
-    //the below condition returns true and user does not have access
-    //as only roles which are received in array have access
-    if (!roles.includes(customReq.user.role)) {
-      return next(
-        res.status(403).json({
-          message: "You do not have permission to perform this action",
-        })
-      );
-    }
-    next();
-  };
 };
