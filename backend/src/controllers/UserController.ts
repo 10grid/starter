@@ -1,5 +1,7 @@
 import express, { Request, Response, NextFunction } from "express";
 import User from "../models/User";
+import { promisify } from "util";
+const jwt = require("jsonwebtoken");
 
 exports.getUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -28,13 +30,21 @@ exports.createUser = async (
   next: NextFunction
 ) => {
   try {
-    const { name, email, password, passwordConfirm, dateofbirth } = req.body;
+    const {
+      name,
+      email,
+      password,
+      passwordConfirm,
+      dateofbirth,
+      passwordChangedAt,
+    } = req.body;
     const user = new User({
       name,
       email,
       password,
       passwordConfirm,
       dateofbirth,
+      passwordChangedAt,
     });
     await user.save();
     return res
@@ -81,4 +91,63 @@ exports.deleteUser = async (
   } catch (error) {
     next(error);
   }
+};
+
+exports.senstiveInfo = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  res.status(200).json({ message: "This is senstive information" });
+};
+
+exports.protect = async (req: Request, res: Response, next: NextFunction) => {
+  let token;
+  //1) Getting token and check if it's there
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
+  if (!token) {
+    return next(
+      res
+        .status(401)
+        .json({ message: "You are not logged in, Please login to get access." })
+    );
+  }
+
+  try {
+    //2) Verification token
+    const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+    if (!decoded) {
+      return next(res.status(401).json({ message: "Invalid signature" }));
+    }
+
+    //3) Check if user still exists
+    const freshUser = await User.findById(decoded.id);
+    if (!freshUser) {
+      return next(
+        res
+          .status(401)
+          .json({ message: "The user belonging to this token does not exist" })
+      );
+    }
+    //4) Check if user changed password after the token was issued
+    if (freshUser.changedPasswordAfter(decoded.iat)) {
+      return next(
+        res.status(401).json({
+          message: "User changed password recently, Please log in again.",
+        })
+      );
+    }
+  } catch (error) {
+    return next(res.status(401).json({ error }));
+  }
+
+  //grant access to protected route
+  // req.user = freshUser;
+  next();
 };

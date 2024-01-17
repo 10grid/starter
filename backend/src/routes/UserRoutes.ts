@@ -6,6 +6,8 @@ const {
   createUser,
   updateUser,
   deleteUser,
+  senstiveInfo,
+  protect,
 } = require("../controllers/userController");
 
 const { signup, login } = require("../controllers/authController");
@@ -22,5 +24,9 @@ router
   .get("/users/:id", getUser)
   .put("/users/:id", updateUser)
   .delete("/users/:id", deleteUser);
+
+// authorized is a middleware function that checks if the user is logged in
+// if not user cannot access the senstiveInfo route
+router.get("/senstiveInfo", protect, senstiveInfo);
 
 export default router;
