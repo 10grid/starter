@@ -6,7 +6,7 @@ const crypto = require("crypto");
 
 import { Model, Schema, model } from "mongoose";
 
-interface IUser {
+export interface IUser {
   name: string;
   email: string;
   role: string;
@@ -22,7 +22,6 @@ interface IUser {
 
 // Put all user instance methods in this interface:
 interface IUserMethods {
-  fullName(): string;
   correctPassword(
     candidatePassword: string,
     userPassword: string
@@ -64,6 +63,7 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>({
     required: [true, "Please confirm your password"],
     validate: {
       //This works only on save and create
+      //meaning it does not work on findByIdAndUpdate because mongoose does not keep current document in memory
       validator: function (el: string) {
         return el === this.password;
       },
@@ -80,6 +80,8 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>({
   updatedAt: { type: Date, default: Date.now },
 });
 
+// methods
+
 userSchema.pre("save", async function (next: NextFunction) {
   //Only run this function if password was actually modified
   if (!this.isModified("password")) return next();
@@ -90,8 +92,6 @@ userSchema.pre("save", async function (next: NextFunction) {
   //Delete passwordConfirm field
   this.passwordConfirm = undefined;
 });
-
-// methods
 
 userSchema.pre("save", function (next) {
   if (!this.isModified("password") || this.isNew) return next();

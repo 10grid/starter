@@ -2,9 +2,11 @@ import express, { Request, Response, NextFunction } from "express";
 const jwt = require("jsonwebtoken");
 import { promisify } from "util";
 import User from "../models/User"; // Fix the import statement
-import { Types } from "mongoose";
+import { Types, Document } from "mongoose";
 const { sendEmail } = require("../utils/email");
 const crypto = require("crypto");
+
+interface IUser {}
 
 interface CustomRequest extends Request {
   user: any;
@@ -13,6 +15,23 @@ interface CustomRequest extends Request {
 const signToken = (id: Types.ObjectId) => {
   return jwt.sign({ id }, process.env.JWT_SECRET as string, {
     expiresIn: process.env.JWT_EXPIRES_IN,
+  });
+};
+
+const createSendToken = (
+  user: Document<IUser>,
+  statusCode: number,
+  res: Response
+) => {
+  // todo: Correct later
+  const token = signToken(user.id);
+
+  res.status(statusCode).json({
+    status: "success",
+    token,
+    data: {
+      user,
+    },
   });
 };
 
@@ -27,15 +46,7 @@ exports.signup = async (req: Request, res: Response, next: NextFunction) => {
       role: req.body.role,
     });
 
-    const token = signToken(newUser._id);
-
-    res.status(201).json({
-      status: "success",
-      token,
-      data: {
-        user: newUser,
-      },
-    });
+    createSendToken(newUser, 201, res);
   } catch (error) {
     next(res.json(error));
   }
@@ -57,11 +68,8 @@ exports.login = async (req: Request, res: Response, next: NextFunction) => {
       return next(res.status(401).json("Incorrect email or password"));
     }
     // 3) If everything ok, send token to client
-    const token = signToken(user._id);
-    res.status(200).json({
-      status: "success",
-      token,
-    });
+    user.password = "";
+    createSendToken(user, 200, res);
   } catch (error) {
     next(res.json(error));
   }
@@ -221,12 +229,33 @@ exports.resetPassword = async (
   user.passwordResetExpires = undefined;
   await user.save();
 
-  //3. update changedPasswordAt property for user
+  //3. update changedPasswordAt property for user. (handled in User model)
 
   //4. login the user, send JWT
-  const token = signToken(user._id);
-  res.status(200).json({
-    status: "success",
-    token,
-  });
+  createSendToken(user, 200, res);
+};
+
+exports.updatePassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  //1. get user from collection
+  const customReq = req as CustomRequest;
+  const user = await User.findById(customReq.user.id).select("+password");
+
+  //2. check if posted current password is correct
+  if (!(await user.correctPassword(req.body.currentPassword, user.password))) {
+    return next(
+      res.status(401).json({ message: "Your current password is wrong!" })
+    );
+  }
+  //3. if so, update password
+  //User.findByIdAndUpdate does not work here as intended
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+  await user.save();
+
+  //4. log user in, send jwt
+  createSendToken(user, 200, res);
 };

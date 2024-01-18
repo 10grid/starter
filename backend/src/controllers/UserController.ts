@@ -1,6 +1,17 @@
 import express, { Request, Response, NextFunction } from "express";
 import User from "../models/User";
-const jwt = require("jsonwebtoken");
+
+interface CustomRequest extends Request {
+  user: any;
+}
+
+const filterObj = (obj: any, ...allowedFields: string[]) => {
+  const newObj: any = {};
+  Object.keys(obj).forEach((el) => {
+    if (allowedFields.includes(el)) newObj[el] = obj[el];
+  });
+  return newObj;
+};
 
 exports.getUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -22,37 +33,6 @@ exports.getUser = async (req: Request, res: Response, next: NextFunction) => {
     next(error);
   }
 };
-
-// exports.createUser = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   try {
-//     const {
-//       name,
-//       email,
-//       password,
-//       passwordConfirm,
-//       dateofbirth,
-//       passwordChangedAt,
-//     } = req.body;
-//     const user = new User({
-//       name,
-//       email,
-//       password,
-//       passwordConfirm,
-//       dateofbirth,
-//       passwordChangedAt,
-//     });
-//     await user.save();
-//     return res
-//       .status(201)
-//       .json({ message: `User ${name} created`, data: user });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
 
 exports.updateUser = async (
   req: Request,
@@ -91,3 +71,67 @@ exports.deleteUser = async (
     next(error);
   }
 };
+
+exports.updateProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  if (req.body.password || req.body.confirmPassword) {
+    return next(
+      res.status(400).json({
+        message:
+          "This route is not for changing password, Please use update-password",
+      })
+    );
+  }
+
+  const customReq = req as CustomRequest;
+
+  const filteredBody = filterObj(req.body, "name", "email");
+  const updatedUser = await User.findByIdAndUpdate(
+    customReq.user.id,
+    filteredBody,
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+
+  res.status(200).json({
+    date: {
+      user: updatedUser,
+    },
+  });
+};
+
+// exports.createUser = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   try {
+//     const {
+//       name,
+//       email,
+//       password,
+//       passwordConfirm,
+//       dateofbirth,
+//       passwordChangedAt,
+//     } = req.body;
+//     const user = new User({
+//       name,
+//       email,
+//       password,
+//       passwordConfirm,
+//       dateofbirth,
+//       passwordChangedAt,
+//     });
+//     await user.save();
+//     return res
+//       .status(201)
+//       .json({ message: `User ${name} created`, data: user });
+//   } catch (error) {
+//     next(error);
+//   }
+// };

@@ -9,6 +9,7 @@ const mongooseConnectDB = () => {
     })
     .catch((err) => {
       console.log(err);
+      throw err;
     });
 };
 
